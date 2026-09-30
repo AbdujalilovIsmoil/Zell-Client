@@ -1,11 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Menu, Moon, Sun, X } from 'lucide-react'
 
 const links = [
   { href: '#imkoniyatlar', label: 'Imkoniyatlar' },
-  { href: '#korinish', label: "Ko'rinish" },
   { href: '#tariflar', label: 'Tariflar' },
   { href: '#savollar', label: 'Savollar' },
 ]
@@ -13,9 +11,14 @@ const links = [
 export default function Nav() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light')
+    const on = () => setScrolled(scrollY > 40)
+    on()
+    window.addEventListener('scroll', on, { passive: true })
+    return () => window.removeEventListener('scroll', on)
   }, [])
 
   const toggle = () => {
@@ -29,28 +32,26 @@ export default function Nav() {
   }
 
   return (
-    <header className="nav">
-      <div className="container nav-inner">
-        <a href="#" className="nav-logo" aria-label="Cognilabs CRM">
+    <header className={`nav${scrolled ? ' is-scrolled' : ''}${open ? ' is-open' : ''}`}>
+      <div className="wrap nav-in">
+        <a href="#" className="nav-logo" aria-label="Zell">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="Cognilabs" />
+          <img src="/logo.svg" alt="Zell" />
         </a>
-        <nav className={`nav-links${open ? ' open' : ''}`}>
+        <nav className="nav-links">
           {links.map((l) => (
             <a key={l.href} href={l.href} onClick={() => setOpen(false)}>
               {l.label}
             </a>
           ))}
         </nav>
-        <div className="nav-actions">
-          <button className="icon-btn" onClick={toggle} aria-label="Mavzuni almashtirish">
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        <div className="nav-right">
+          <button className="theme-switch" onClick={toggle} aria-label="Mavzuni almashtirish" data-mode={theme}>
+            <span />
           </button>
-          <a href="#tariflar" className="btn btn-primary btn-sm nav-cta">
-            Boshlash
-          </a>
-          <button className="icon-btn menu-btn" onClick={() => setOpen(!open)} aria-label="Menyu">
-            {open ? <X size={18} /> : <Menu size={18} />}
+          <button className="burger" onClick={() => setOpen(!open)} aria-label="Menyu" aria-expanded={open}>
+            <span />
+            <span />
           </button>
         </div>
       </div>

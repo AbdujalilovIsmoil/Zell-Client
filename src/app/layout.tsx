@@ -1,13 +1,20 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Instrument_Sans, Instrument_Serif } from 'next/font/google'
 import './globals.css'
+import SmoothScroll from '@/components/SmoothScroll'
 
-const inter = Inter({ subsets: ['latin', 'cyrillic'], variable: '--font-inter', display: 'swap' })
+const sans = Instrument_Sans({ subsets: ['latin', 'latin-ext'], variable: '--font-sans', display: 'swap' })
+const serif = Instrument_Serif({
+  subsets: ['latin', 'latin-ext'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+})
 
 export const metadata: Metadata = {
-  title: 'Cognilabs CRM — biznesingiz uchun yagona boshqaruv tizimi',
-  description:
-    "Savdo, ombor, mijozlar va hisobotlar — bitta zamonaviy CRM'da. POS, filiallar, rollar va real vaqt statistikasi.",
+  title: "Zell — do'konlar uchun CRM",
+  description: "Kassa, ombor, mijozlar va hisobotlar bitta tizimda. Har bir chek o'zi hisobga tushadi.",
 }
 
 export const viewport: Viewport = {
@@ -21,11 +28,14 @@ const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(!t){
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="uz" className={inter.variable} suppressHydrationWarning>
+    <html lang="uz" className={`${sans.variable} ${serif.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body>{children}</body>
+      <body>
+        <SmoothScroll />
+        {children}
+      </body>
     </html>
   )
 }
