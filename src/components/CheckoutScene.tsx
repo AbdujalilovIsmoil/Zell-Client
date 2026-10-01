@@ -262,6 +262,56 @@ export default function CheckoutScene() {
       rig.add(r)
     })
 
+    /* ---------- intake tunnel: products come out of here ---------- */
+    const HOOD_L = -LEN / 2 - 0.1 // closed back wall
+    const HOOD_R = -2.7 // open mouth, fitted with a strip curtain
+    const HOOD_H = 1.15
+    const hoodMat = std('#101713', 0.4, 0.3)
+    const hoodPart = (w: number, h: number, d: number, x: number, y: number, z: number, mat: THREE.Material = hoodMat) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat)
+      m.position.set(x, y, z)
+      m.castShadow = m.receiveShadow = true
+      rig.add(m)
+      return m
+    }
+    const hoodMid = (HOOD_L + HOOD_R) / 2
+    const hoodLen = HOOD_R - HOOD_L
+    hoodPart(hoodLen, 0.1, 2.06, hoodMid, HOOD_H + 0.05, 0) // roof
+    ;[-0.93, 0.93].forEach((z) => hoodPart(hoodLen, HOOD_H, 0.1, hoodMid, HOOD_H / 2, z)) // side walls
+    hoodPart(0.1, HOOD_H, 1.76, HOOD_L, HOOD_H / 2, 0) // back wall
+    hoodPart(hoodLen + 0.04, 0.05, 2.1, hoodMid, HOOD_H + 0.11, 0, trimMat) // green roof trim
+    ;[-0.93, 0.93].forEach((z) => hoodPart(hoodLen, 0.04, 0.12, hoodMid, 0.02, z, trimMat)) // green base lines
+    // Cloth flaps: each one is a hanging chain (verlet) skinned with a ribbon, so
+    // it drapes over products, gets dragged along and swings back by itself.
+    const stripMat = new THREE.MeshStandardMaterial({ color: '#1b2a21', roughness: 0.85, side: THREE.DoubleSide })
+    const STRIP_H = HOOD_H - 0.1
+    const NODES = 8
+    const SEG = STRIP_H / (NODES - 1)
+    const STRIP_W = 0.19
+    type Flap = { z: number; x: number[]; y: number[]; px: number[]; py: number[]; geo: THREE.PlaneGeometry; mesh: THREE.Mesh }
+    const flaps: Flap[] = []
+    for (let i = 0; i < 9; i++) {
+      const z = -0.8 + i * 0.2
+      const geo = new THREE.PlaneGeometry(STRIP_W, STRIP_H, 1, NODES - 1)
+      const mesh = new THREE.Mesh(geo, stripMat)
+      mesh.frustumCulled = false
+      mesh.castShadow = true
+      rig.add(mesh)
+      const x = Array.from({ length: NODES }, () => HOOD_R)
+      const y = Array.from({ length: NODES }, (_, k) => HOOD_H - k * SEG)
+      flaps.push({ z, x, y, px: x.slice(), py: y.slice(), geo, mesh })
+    }
+    const skin = (f: Flap, t: number) => {
+      const pos = f.geo.attributes.position as THREE.BufferAttribute
+      for (let k = 0; k < NODES; k++) {
+        const sway = Math.sin(t * 1.6 + f.z * 5 + k * 0.5) * 0.012 * (k / NODES)
+        for (let side = 0; side < 2; side++) pos.setXYZ(k * 2 + side, f.x[k], f.y[k], f.z + (side ? STRIP_W / 2 : -STRIP_W / 2) + sway)
+      }
+      pos.needsUpdate = true
+      f.geo.computeVertexNormals()
+    }
+    flaps.forEach((f) => skin(f, 0))
+
     /* ---------- scanner tower + laser ---------- */
     const SCAN_X = 0.4
     const tower = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.5, 0.35), std('#101713', 0.35, 0.3))
@@ -396,7 +446,7 @@ export default function CheckoutScene() {
     window.addEventListener('pointermove', onMove)
 
     /* ---------- basket state machine ---------- */
-    type Live = { obj: THREE.Object3D; item: Item; x: number; scanned: boolean; bagged: number }
+    type Live = { obj: THREE.Object3D; item: Item; x: number; scanned: boolean; bagged: number; box: THREE.Box3; zc: number }
     type Tag = { sprite: THREE.Sprite; tex: THREE.Texture; life: number }
     let live: Live[] = []
     const tags: Tag[] = []
@@ -406,7 +456,7 @@ export default function CheckoutScene() {
     let paidTimer = -1
     let flash = 0
     const SPEED = 1.15
-    const START_X = -LEN / 2 - 0.6
+    const START_X = HOOD_L + 0.3
 
     const spawnBasket = () => {
       const b = BASKETS[basketIdx % BASKETS.length]
@@ -415,8 +465,11 @@ export default function CheckoutScene() {
         obj.rotation.y = (Math.random() - 0.5) * 0.5
         const x = START_X - i * 1.45
         obj.position.set(x, 0.06, (Math.random() - 0.5) * 0.3)
+        obj.visible = false // revealed once it rolls out of the tunnel
+        const lb = new THREE.Box3().setFromObject(obj) // before it joins the rig: local == world
+        const box = new THREE.Box3(lb.min.clone().sub(obj.position), lb.max.clone().sub(obj.position))
         rig.add(obj)
-        return { obj, item, x, scanned: false, bagged: 0 }
+        return { obj, item, x, scanned: false, bagged: 0, box, zc: obj.position.z }
       })
       scannedLines = []
       total = 0
@@ -470,6 +523,7 @@ export default function CheckoutScene() {
           }
           p.x += dt * SPEED
           p.obj.position.x = p.x
+          p.obj.visible = p.x > HOOD_L + 0.4 // queued inside the tunnel, only seen once it rolls out
           if (!p.scanned && p.x >= SCAN_X) {
             p.scanned = true
             flash = 1
@@ -499,6 +553,56 @@ export default function CheckoutScene() {
           spawnBasket()
         }
       }
+
+      // cloth flaps: gravity + drag, pinned at the top, pushed out of products
+      const SUB = Math.max(1, Math.round(dt * 90))
+      const h = dt / SUB
+      for (let n = 0; n < SUB; n++) {
+        for (const f of flaps) {
+          for (let k = 1; k < NODES; k++) {
+            const vx = (f.x[k] - f.px[k]) * 0.97
+            const vy = (f.y[k] - f.py[k]) * 0.97
+            f.px[k] = f.x[k]
+            f.py[k] = f.y[k]
+            f.x[k] += vx
+            f.y[k] += vy - 14 * h * h
+          }
+          for (let it = 0; it < 6; it++) {
+            f.x[0] = HOOD_R
+            f.y[0] = HOOD_H
+            for (let k = 1; k < NODES; k++) {
+              const dx = f.x[k] - f.x[k - 1]
+              const dy = f.y[k] - f.y[k - 1]
+              const d = Math.hypot(dx, dy) || 1e-6
+              const e = (d - SEG) / d
+              const w = k === 1 ? 1 : 0.5
+              f.x[k] -= dx * e * w
+              f.y[k] -= dy * e * w
+              if (k > 1) {
+                f.x[k - 1] += dx * e * 0.5
+                f.y[k - 1] += dy * e * 0.5
+              }
+            }
+            for (let k = 1; k < NODES; k++) {
+              if (f.y[k] < 0.08) f.y[k] = 0.08 // belt
+              for (const p of live) {
+                if (p.bagged > 0 || !p.obj.visible) continue
+                const x0 = p.x + p.box.min.x - 0.03
+                const x1 = p.x + p.box.max.x + 0.03
+                const y1 = p.box.max.y + 0.06 + 0.03
+                if (Math.abs(f.z - p.zc) > Math.max(p.box.max.z, -p.box.min.z) + 0.04) continue
+                if (f.x[k] > x0 && f.x[k] < x1 && f.y[k] < y1) {
+                  const toFront = x1 - f.x[k]
+                  const toTop = y1 - f.y[k]
+                  if (toFront < toTop) f.x[k] = x1
+                  else f.y[k] = y1
+                }
+              }
+            }
+          }
+        }
+      }
+      flaps.forEach((f) => skin(f, t))
 
       // laser: idle red shimmer, green flash on scan
       flash *= 0.9

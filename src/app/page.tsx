@@ -101,9 +101,9 @@ export default function Home() {
             <Reveal className="head">
               <span className="eyebrow">Tariflar</span>
               <h2>
-                Tarifni <em>siz</em> emas, biznesingiz tanlaydi.
+                Faqat <em>kerakli</em> narsa uchun to&apos;laysiz.
               </h2>
-              <p>Filial va xodimlar sonini kiriting — sizga yetadigan eng arzon tarifni ko&apos;rsatamiz.</p>
+              <p>Tayyor tarifni tanlang yoki chekni o&apos;zingiz yig&apos;ing — narx shu zahoti hisoblanadi.</p>
             </Reveal>
             <Reveal>
               <Pricing />

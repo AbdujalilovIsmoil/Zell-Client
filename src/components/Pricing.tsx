@@ -4,68 +4,98 @@ import { useEffect, useRef, useState } from 'react'
 import Btn from '@/components/Arrow'
 
 /**
- * Plan picker: describe the business with two sliders and a few switches,
- * the smallest plan that covers it is chosen for you (or click one yourself).
- * The brand block slides to the chosen plan and its price counts over.
+ * Pricing as a receipt: pick branches, staff and modules on the left and the
+ * bill prints itself on the right, line by line. A few presets fill it in for you.
+ *
+ * Placeholder prices — confirm before launch.
  */
 
-type Need = 'loyalty' | 'ai' | 'api'
-type Plan = {
+type ModId = 'loyalty' | 'ai' | 'api' | 'manager'
+type Mod = { id: ModId; name: string; about: string; price: number }
+
+const BASE = 199_000 // per branch: kassa + ombor + hisobotlar
+const STAFF_FREE = 3 // staff included per branch
+const STAFF_EXTRA = 15_000 // per extra staff member
+const YEAR_MONTHS = 10 // yearly billing: 2 months free
+
+const MODS: Mod[] = [
+  {
+    id: 'loyalty',
+    name: 'Sodiqlik va ballar',
+    about: 'Mijoz kartasi, ball, chegirma',
+    price: 99_000,
+  },
+  {
+    id: 'ai',
+    name: 'AI prognoz',
+    about: 'Qoldiq va savdo bashorati',
+    price: 249_000,
+  },
+  {
+    id: 'api',
+    name: 'Integratsiya / API',
+    about: 'Boshqa tizimlar bilan ulash',
+    price: 199_000,
+  },
+  {
+    id: 'manager',
+    name: 'Shaxsiy menejer',
+    about: "24/7 yordam, ma'lumot ko'chirish",
+    price: 149_000,
+  },
+]
+
+type PlanCard = {
   id: string
   name: string
   about: string
-  monthly: number
-  branches: number // Infinity = unlimited
+  branches: number
   staff: number
-  has: Need[]
+  mods: ModId[]
   features: string[]
+  hot?: boolean
+  free?: boolean
 }
-
-const PLANS: Plan[] = [
-  {
-    id: 'start',
-    name: 'Start',
-    about: "Bitta do'kon, bir-ikki xodim.",
-    monthly: 199_000,
-    branches: 1,
-    staff: 2,
-    has: [],
-    features: ['1 ta filial', '2 tagacha xodim', 'Kassa (POS) va ombor', 'Asosiy hisobotlar', 'Email orqali yordam'],
-  },
+const PLANS: PlanCard[] = [
   {
     id: 'biznes',
     name: 'Biznes',
-    about: "Bir nechta filial va jamoa bilan o'sayotgan savdo.",
-    monthly: 499_000,
-    branches: 5,
-    staff: 15,
-    has: ['loyalty'],
-    features: ['5 tagacha filial', '15 tagacha xodim', 'Mijozlar va sodiqlik tizimi', 'Kengaytirilgan hisobotlar', 'Rollar va ruxsatlar', 'Ustuvor yordam'],
+    free: true,
+    about: "Bitta do'kon, bir-ikki xodim.",
+    branches: 1,
+    staff: 3,
+    mods: [],
+    features: ['1 ta filial', '3 tagacha xodim', 'Kassa (POS) va ombor', 'Asosiy hisobotlar'],
   },
   {
     id: 'premium',
     name: 'Premium',
+    about: "Bir nechta filial bilan o'sayotgan savdo.",
+    branches: 3,
+    staff: 9,
+    mods: ['loyalty'],
+    features: ['3 ta filial', '9 tagacha xodim', 'Kassa (POS) va ombor', 'Kengaytirilgan hisobotlar', 'Rollar va ruxsatlar'],
+    hot: true,
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
     about: 'Tarmoq va franchayzalar uchun.',
-    monthly: 999_000,
-    branches: Infinity,
-    staff: Infinity,
-    has: ['loyalty', 'ai', 'api'],
-    features: ['Cheksiz filial va xodim', 'AI yordamchi va prognoz', 'Integratsiya va API', 'Shaxsiy menejer', "Ma'lumotlarni ko'chirish", '24/7 yordam'],
+    branches: 8,
+    staff: 30,
+    mods: ['loyalty', 'ai', 'api', 'manager'],
+    features: ['8 va undan ko‘p filial', 'Cheksiz xodim', 'Kassa (POS) va ombor', 'Barcha hisobotlar', 'Rollar va ruxsatlar'],
   },
 ]
 
-const NEEDS: { id: Need; label: string }[] = [
-  { id: 'loyalty', label: 'Sodiqlik va ballar' },
-  { id: 'ai', label: 'AI prognoz' },
-  { id: 'api', label: 'Integratsiya / API' },
-]
+function priceOf(branches: number, staff: number, mods: ModId[]) {
+  const extra = Math.max(0, staff - STAFF_FREE * branches)
+  return branches * BASE + extra * STAFF_EXTRA + MODS.filter((m) => mods.includes(m.id)).reduce((s, m) => s + m.price, 0)
+}
 
-// Yearly billing: 2 months free. Placeholder policy — confirm before launch.
-const YEAR_MONTHS = 10
+const fmt = (n: number) => Math.round(n).toLocaleString('ru-RU').replace(/ |,/g, ' ')
 
-const fmt = (n: number) => Math.round(n).toLocaleString('ru-RU').replace(/ |,/g, ' ')
-
-function useTween(value: number, ms = 650) {
+function useTween(value: number, ms = 600) {
   const [v, setV] = useState(value)
   const from = useRef(value)
   useEffect(() => {
@@ -74,9 +104,10 @@ function useTween(value: number, ms = 650) {
     let raf = 0
     const step = (now: number) => {
       const t = Math.min(1, (now - start) / ms)
-      setV(a + (value - a) * (1 - Math.pow(1 - t, 3)))
+      const next = a + (value - a) * (1 - Math.pow(1 - t, 3))
+      setV(next)
+      from.current = next
       if (t < 1) raf = requestAnimationFrame(step)
-      else from.current = value
     }
     raf = requestAnimationFrame(step)
     return () => cancelAnimationFrame(raf)
@@ -84,171 +115,245 @@ function useTween(value: number, ms = 650) {
   return v
 }
 
-function PlanPrice({ plan, yearly }: { plan: Plan; yearly: boolean }) {
-  const perMonth = yearly ? (plan.monthly * YEAR_MONTHS) / 12 : plan.monthly
-  const v = useTween(perMonth)
+function PlanCardView({ plan, yearly, active, onPick }: { plan: PlanCard; yearly: boolean; active: boolean; onPick: () => void }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const monthly = plan.free ? 0 : priceOf(plan.branches, plan.staff, plan.mods)
+  const shown = useTween(yearly ? (monthly * YEAR_MONTHS) / 12 : monthly)
+
+  const onMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const el = ref.current
+    if (!el || e.pointerType === 'touch') return
+    const r = el.getBoundingClientRect()
+    const x = (e.clientX - r.left) / r.width
+    const y = (e.clientY - r.top) / r.height
+    el.style.setProperty('--mx', `${x * 100}%`)
+    el.style.setProperty('--my', `${y * 100}%`)
+    el.style.setProperty('--rx', `${(0.5 - y) * 8}deg`)
+    el.style.setProperty('--ry', `${(x - 0.5) * 10}deg`)
+  }
+  const onLeave = () => {
+    const el = ref.current
+    if (!el) return
+    el.style.setProperty('--rx', '0deg')
+    el.style.setProperty('--ry', '0deg')
+    el.style.setProperty('--mx', '50%')
+    el.style.setProperty('--my', '0%')
+  }
+
   return (
-    <span className="pr-price">
-      {fmt(Math.round(v / 1000) * 1000)}
-      <small>so&apos;m / oy</small>
-    </span>
+    <div className={`pc${plan.hot ? ' hot' : ''}${active ? ' active' : ''}`} ref={ref} onPointerMove={onMove} onPointerLeave={onLeave}>
+      <div className="pc-glow" aria-hidden="true" />
+      <div className="pc-in">
+        {plan.hot && <span className="pc-tag">Eng ko‘p tanlanadi</span>}
+        <div className="pc-dots" aria-hidden="true">
+          {Array.from({ length: plan.id === 'enterprise' ? 12 : plan.branches }, (_, i) => (
+            <i key={i} style={{ transitionDelay: `${i * 35}ms` }} className={plan.id === 'enterprise' && i >= 8 ? 'ext' : ''} />
+          ))}
+        </div>
+        <h3>{plan.name}</h3>
+        <p className="pc-about">{plan.about}</p>
+
+        <div className="pc-price">
+          {!plan.free && <span>dan</span>}
+          <b>{fmt(Math.round(shown / 1000) * 1000)}</b>
+          <small>so&apos;m / oy</small>
+        </div>
+        <p className="pc-year">{yearly ? `Yiliga ${fmt(monthly * YEAR_MONTHS)} so'm` : '\u00a0'}</p>
+
+        <ul className="pc-feat">
+          {plan.features.map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
+        <div className="pc-mods">
+          {MODS.map((m) => (
+            <span key={m.id} className={plan.mods.includes(m.id) ? 'on' : ''}>
+              {m.name}
+            </span>
+          ))}
+        </div>
+
+        <button className="pc-btn" onClick={onPick}>
+          {active ? 'Chekda ✓' : 'Chekda ko‘rish'}
+          <span aria-hidden="true">↓</span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function Stepper({
+  label,
+  hint,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string
+  hint: string
+  value: number
+  min: number
+  max: number
+  onChange: (n: number) => void
+}) {
+  return (
+    <div className="pr-step">
+      <div>
+        <span>{label}</span>
+        <small>{hint}</small>
+      </div>
+      <div className="pr-ctl">
+        <button aria-label={`${label}: kamaytirish`} disabled={value <= min} onClick={() => onChange(value - 1)}>
+          −
+        </button>
+        <b>{value}</b>
+        <button aria-label={`${label}: ko'paytirish`} disabled={value >= max} onClick={() => onChange(value + 1)}>
+          +
+        </button>
+      </div>
+    </div>
   )
 }
 
 export default function Pricing() {
   const [branches, setBranches] = useState(3)
   const [staff, setStaff] = useState(8)
-  const [needs, setNeeds] = useState<Need[]>(['loyalty'])
+  const [mods, setMods] = useState<ModId[]>(['loyalty'])
   const [yearly, setYearly] = useState(false)
-  const [manual, setManual] = useState<string | null>(null)
+  const paper = useRef<HTMLDivElement>(null)
 
-  const fits = (p: Plan) => branches <= p.branches && staff <= p.staff && needs.every((n) => p.has.includes(n))
-  const recommended = PLANS.find(fits) ?? PLANS[PLANS.length - 1]
-  const active = PLANS.find((p) => p.id === manual) ?? recommended
-
-  // the brand block slides between rows
-  const list = useRef<HTMLDivElement>(null)
-  const [hl, setHl] = useState({ top: 0, height: 0 })
-  useEffect(() => {
-    const measure = () => {
-      const row = list.current?.querySelector<HTMLElement>(`[data-plan="${active.id}"]`)
-      if (row) setHl({ top: row.offsetTop, height: row.offsetHeight })
-    }
-    measure()
-    const ro = new ResizeObserver(measure)
-    list.current && ro.observe(list.current)
-    // rows grow while the open one animates; follow it for a moment
-    const id = window.setInterval(measure, 60)
-    const stop = window.setTimeout(() => clearInterval(id), 700)
-    return () => {
-      ro.disconnect()
-      clearInterval(id)
-      clearTimeout(stop)
-    }
-  }, [active.id, yearly])
-
-  const touch = () => setManual(null)
-  const toggleNeed = (n: Need) => {
-    touch()
-    setNeeds((cur) => (cur.includes(n) ? cur.filter((x) => x !== n) : [...cur, n]))
-  }
-
-  const why = [
-    `${branches} ta filial`,
-    `${staff} ta xodim`,
-    ...NEEDS.filter((n) => needs.includes(n.id)).map((n) => n.label),
+  const preset = PLANS.findIndex((p) => p.branches === branches && p.staff === staff && p.mods.length === mods.length && p.mods.every((m) => mods.includes(m)))
+  const freePlan = preset >= 0 && PLANS[preset].free
+  const extra = Math.max(0, staff - STAFF_FREE * branches)
+  const lines = [
+    {
+      key: 'base',
+      name: 'Kassa, ombor, hisobot',
+      qty: `${branches} filial × ${fmt(BASE)}`,
+      sum: branches * BASE,
+    },
+    extra > 0
+      ? {
+          key: 'staff',
+          name: "Qo'shimcha xodim",
+          qty: `${extra} × ${fmt(STAFF_EXTRA)}`,
+          sum: extra * STAFF_EXTRA,
+        }
+      : { key: 'staff', name: 'Xodimlar', qty: `${staff} ta`, sum: 0 },
+    ...MODS.filter((m) => mods.includes(m.id)).map((m) => ({
+      key: m.id,
+      name: m.name,
+      qty: '',
+      sum: m.price,
+    })),
   ]
-  const yearTotal = active.monthly * YEAR_MONTHS
+  if (freePlan) lines.push({ key: 'free', name: `${PLANS[preset].name} tarifi`, qty: 'bepul', sum: -lines.reduce((t, l) => t + l.sum, 0) })
+  const monthly = lines.reduce((s, l) => s + l.sum, 0)
+  const total = yearly ? monthly * YEAR_MONTHS : monthly
+  const shown = useTween(total)
+
+  const applyPreset = (i: number) => {
+    const p = PLANS[i]
+    setBranches(p.branches)
+    setStaff(p.staff)
+    setMods(p.mods)
+    paper.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
+  const toggle = (id: ModId) => setMods((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))
 
   return (
-    <div className="pr">
-      {/* ---------- configurator ---------- */}
-      <div className="pr-form">
-        <p className="pr-q">Biznesingiz qanday?</p>
+    <>
+      <div className="pc-row">
+        {PLANS.map((p, i) => (
+          <PlanCardView key={p.id} plan={p} yearly={yearly} active={preset === i} onPick={() => applyPreset(i)} />
+        ))}
+      </div>
 
-        <label className="pr-slider">
-          <span>
-            Filiallar <b>{branches}</b>
-          </span>
-          <input
-            type="range"
-            min={1}
-            max={20}
-            value={branches}
-            style={{ '--p': `${((branches - 1) / 19) * 100}%` } as React.CSSProperties}
-            onChange={(e) => {
-              touch()
-              setBranches(+e.target.value)
-            }}
-          />
-        </label>
+      <div className="pr">
+        {/* ---------- controls ---------- */}
+        <div className="pr-form">
+          <p className="pr-q">Yoki chekni o&apos;zingiz yig&apos;ing</p>
+          <Stepper label="Filiallar" hint="Har biri alohida kassa va ombor" value={branches} min={1} max={50} onChange={setBranches} />
+          <Stepper label="Xodimlar" hint={`Har filialga ${STAFF_FREE} tasi kiradi`} value={staff} min={1} max={200} onChange={setStaff} />
 
-        <label className="pr-slider">
-          <span>
-            Xodimlar <b>{staff}</b>
-          </span>
-          <input
-            type="range"
-            min={1}
-            max={60}
-            value={staff}
-            style={{ '--p': `${((staff - 1) / 59) * 100}%` } as React.CSSProperties}
-            onChange={(e) => {
-              touch()
-              setStaff(+e.target.value)
-            }}
-          />
-        </label>
-
-        <div className="pr-needs">
-          <span>Kerak bo&apos;ladi</span>
-          <div>
-            {NEEDS.map((n) => (
-              <button key={n.id} className={needs.includes(n.id) ? 'on' : ''} aria-pressed={needs.includes(n.id)} onClick={() => toggleNeed(n.id)}>
-                {n.label}
-              </button>
-            ))}
+          <div className="pr-mods">
+            {MODS.map((m) => {
+              const on = mods.includes(m.id)
+              return (
+                <button key={m.id} className={on ? 'on' : ''} aria-pressed={on} onClick={() => toggle(m.id)}>
+                  <span className="pr-sw" aria-hidden="true" />
+                  <span className="pr-mod-t">
+                    {m.name}
+                    <small>{m.about}</small>
+                  </span>
+                  <span className="pr-mod-p">+{fmt(m.price)}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
-        <div className="pr-bill">
-          <button className={!yearly ? 'on' : ''} onClick={() => setYearly(false)}>
-            Oylik
-          </button>
-          <button className={yearly ? 'on' : ''} onClick={() => setYearly(true)}>
-            Yillik <em>2 oy bepul</em>
-          </button>
+        {/* ---------- receipt ---------- */}
+        <div className="pr-paper-wrap" ref={paper}>
+          <div className="pr-paper" aria-live="polite">
+            <header className="pr-ph">
+              <strong>ZELL</strong>
+              <span>Tarif cheki</span>
+            </header>
+
+            <ul className="pr-lines">
+              {lines.map((l) => (
+                <li key={l.key}>
+                  <span className="pr-ln">
+                    {l.name}
+                    {l.qty && <small>{l.qty}</small>}
+                  </span>
+                  <span className="pr-dots" aria-hidden="true" />
+                  <span className="pr-ls">{l.sum ? fmt(l.sum) : 'kiritilgan'}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="pr-sub">
+              <span>Oylik</span>
+              <span>{fmt(monthly)}</span>
+            </div>
+            {yearly && (
+              <div className="pr-sub save">
+                <span>12 oy o&apos;rniga 10 oy</span>
+                <span>−{fmt(monthly * (12 - YEAR_MONTHS))}</span>
+              </div>
+            )}
+
+            <div className="pr-total">
+              <span>{yearly ? 'Yiliga' : 'Oyiga'}</span>
+              <b>
+                {fmt(shown)}
+                <small>so&apos;m</small>
+              </b>
+            </div>
+
+            <div className="pr-bill">
+              <button className={!yearly ? 'on' : ''} onClick={() => setYearly(false)}>
+                Oylik
+              </button>
+              <button className={yearly ? 'on' : ''} onClick={() => setYearly(true)}>
+                Yillik <em>2 oy bepul</em>
+              </button>
+            </div>
+
+            <div className="pr-cta">
+              <Btn href="#" tone="ink">
+                14 kun bepul sinash
+              </Btn>
+              <small>Karta so‘ralmaydi. Istalgan vaqt o‘zgartirasiz.</small>
+            </div>
+
+            <div className="pr-bar" aria-hidden="true" />
+          </div>
         </div>
       </div>
-
-      {/* ---------- plans ---------- */}
-      <div className="pr-list" ref={list}>
-        <span className="pr-hl" style={{ transform: `translateY(${hl.top}px)`, height: hl.height }} aria-hidden="true" />
-        {PLANS.map((p) => {
-          const open = p.id === active.id
-          return (
-            <div key={p.id} data-plan={p.id} className={`pr-plan${open ? ' open' : ''}`}>
-              <button className="pr-row" onClick={() => setManual(p.id)} aria-expanded={open}>
-                <span className="pr-name">
-                  {p.name}
-                  {p.id === recommended.id && <em>Sizga mos</em>}
-                </span>
-                <PlanPrice plan={p} yearly={yearly} />
-              </button>
-              <div className="pr-body">
-                <div className="pr-inner">
-                  <p className="pr-about">{p.about}</p>
-                  {p.id === recommended.id && (
-                    <div className="pr-why">
-                      {why.map((w) => (
-                        <span key={w}>✓ {w}</span>
-                      ))}
-                    </div>
-                  )}
-                  <ul>
-                    {p.features.map((f) => (
-                      <li key={f}>{f}</li>
-                    ))}
-                  </ul>
-                  <div className="pr-foot">
-                    <Btn href="#" tone="ink">
-                      {p.name} ni tanlash
-                    </Btn>
-                    {yearly && <small>Yiliga {fmt(p.monthly * YEAR_MONTHS)} so&apos;m</small>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        })}
-        <p className="pr-note">
-          {manual && manual !== recommended.id
-            ? `Siz ${active.name} ni tanladingiz. Kiritilganlarga ${recommended.name} yetadi.`
-            : yearly
-              ? `${active.name}: yiliga ${fmt(yearTotal)} so'm — 12 oy o'rniga 10 oy to'laysiz.`
-              : '14 kun bepul. Karta so‘ralmaydi, istalgan vaqt tarifni almashtirasiz.'}
-        </p>
-      </div>
-    </div>
+    </>
   )
 }
