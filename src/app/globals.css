@@ -259,17 +259,48 @@ button {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--brand);
+  background: transparent;
   box-shadow: inset -6px -2px 0 0 transparent;
   transition:
     transform 0.5s var(--ease),
     box-shadow 0.5s var(--ease),
     background 0.4s;
 }
+/* sun: round core + ring of rays that slowly turns */
+.theme-switch span::before,
+.theme-switch span::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  transition:
+    opacity 0.3s,
+    transform 0.6s var(--ease);
+}
+.theme-switch span::after {
+  inset: 5px;
+  background: var(--brand);
+}
+.theme-switch span::before {
+  inset: 0;
+  background: repeating-conic-gradient(var(--brand) 0 9deg, transparent 9deg 45deg);
+  -webkit-mask: radial-gradient(circle, transparent 6.5px, #000 7px, #000 10px, transparent 10.5px);
+  mask: radial-gradient(circle, transparent 6.5px, #000 7px, #000 10px, transparent 10.5px);
+  animation: sun-spin 14s linear infinite;
+}
+@keyframes sun-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 .theme-switch[data-mode='dark'] span {
   transform: translateX(20px);
-  background: transparent;
   box-shadow: inset -6px -3px 0 0 var(--brand);
+}
+.theme-switch[data-mode='dark'] span::before,
+.theme-switch[data-mode='dark'] span::after {
+  opacity: 0;
+  transform: scale(0.4);
+  animation: none;
 }
 .burger {
   display: none;
