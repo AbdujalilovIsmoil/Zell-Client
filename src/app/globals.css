@@ -292,12 +292,12 @@ button {
     transform: rotate(360deg);
   }
 }
-.theme-switch[data-mode='dark'] span {
+:root[data-theme='dark'] .theme-switch span {
   transform: translateX(20px);
   box-shadow: inset -6px -3px 0 0 var(--brand);
 }
-.theme-switch[data-mode='dark'] span::before,
-.theme-switch[data-mode='dark'] span::after {
+:root[data-theme='dark'] .theme-switch span::before,
+:root[data-theme='dark'] .theme-switch span::after {
   opacity: 0;
   transform: scale(0.4);
   animation: none;

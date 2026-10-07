@@ -46,7 +46,7 @@ export default function Nav() {
           ))}
         </nav>
         <div className="nav-right">
-          <button className="theme-switch" onClick={toggle} aria-label="Mavzuni almashtirish" data-mode={theme}>
+          <button className="theme-switch" onClick={toggle} aria-label="Mavzuni almashtirish">
             <span />
           </button>
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menyu" aria-expanded={open}>
