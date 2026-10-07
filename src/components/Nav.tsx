@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 
 const links = [
   { href: '#imkoniyatlar', label: 'Imkoniyatlar' },
@@ -10,11 +10,19 @@ const links = [
 
 export default function Nav() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [ready, setReady] = useState(false)
   const [open, setOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
 
-  useEffect(() => {
+  // Sync with the real theme before the first paint, and only enable the
+  // switch transition afterwards so it never animates on load.
+  useLayoutEffect(() => {
     setTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light')
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setReady(true)))
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  useEffect(() => {
     const on = () => setScrolled(scrollY > 40)
     on()
     window.addEventListener('scroll', on, { passive: true })
@@ -46,7 +54,7 @@ export default function Nav() {
           ))}
         </nav>
         <div className="nav-right">
-          <button className="theme-switch" onClick={toggle} aria-label="Mavzuni almashtirish">
+          <button className={`theme-switch${ready ? ' is-ready' : ''}`} data-mode={theme} onClick={toggle} aria-label="Mavzuni almashtirish">
             <span />
           </button>
           <button className="burger" onClick={() => setOpen(!open)} aria-label="Menyu" aria-expanded={open}>

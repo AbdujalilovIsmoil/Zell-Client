@@ -261,6 +261,8 @@ button {
   border-radius: 50%;
   background: transparent;
   box-shadow: inset -6px -2px 0 0 transparent;
+}
+.theme-switch.is-ready span {
   transition:
     transform 0.5s var(--ease),
     box-shadow 0.5s var(--ease),
@@ -272,6 +274,9 @@ button {
   content: '';
   position: absolute;
   border-radius: 50%;
+}
+.theme-switch.is-ready span::before,
+.theme-switch.is-ready span::after {
   transition:
     opacity 0.3s,
     transform 0.6s var(--ease);
