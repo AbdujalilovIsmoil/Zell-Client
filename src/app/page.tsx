@@ -38,9 +38,11 @@ export default function Home() {
                 Kassada sotuv bo&apos;lgan soniyada ombor, mijoz kartasi va foyda hisoboti o&apos;zi yangilanadi. Siz faqat savdo qilasiz.
               </p>
               <div className="hero-cta">
-                <Btn href="#boshlash" tone="brand">
-                  Ma&apos;lumot olish
-                </Btn>
+                <span className="hero-ping">
+                  <Btn href="#boshlash" tone="brand">
+                    Ma&apos;lumot olish
+                  </Btn>
+                </span>
               </div>
               <HeroFlow />
             </div>

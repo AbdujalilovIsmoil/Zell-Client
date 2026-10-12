@@ -805,32 +805,33 @@ button {
   margin-top: 30px;
   gap: 24px;
 }
-.hero-cta .btn::before {
-  /* the background floods white from the arrow chip, holds, then draws back */
-  background: #fff;
-  transition: none;
-  animation: cta-flood 4.2s cubic-bezier(0.65, 0, 0.35, 1) 2s infinite;
+.hero-ping {
+  /* a ring grows out from behind the button, fades and repeats (like an "animate-ping" play button) */
+  position: relative;
+  display: inline-flex;
+  isolation: isolate;
 }
-.hero-cta .btn:hover::before {
-  animation-play-state: paused;
+.hero-ping::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 45%, transparent);
+  animation: hero-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
 }
-@keyframes cta-flood {
-  0%,
-  6% {
-    clip-path: circle(0 at calc(100% - 29px) 50%);
-  }
-  34%,
-  56% {
-    clip-path: circle(150% at calc(100% - 29px) 50%);
-  }
-  86%,
+@keyframes hero-ping {
+  75%,
   100% {
-    clip-path: circle(0 at calc(100% - 29px) 50%);
+    transform: scale(1.22, 1.75);
+    opacity: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-cta .btn::before {
+  .hero-ping::before {
     animation: none;
+    opacity: 0;
   }
 }
 .hero-cta .btn {
