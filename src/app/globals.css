@@ -806,6 +806,28 @@ button {
   gap: 24px;
 }
 .hero-cta .btn {
+  animation: cta-pulse 1.8s ease-in-out 1.8s infinite;
+}
+.hero-cta .btn:hover {
+  animation-play-state: paused;
+}
+@keyframes cta-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 55%, transparent);
+  }
+  50% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--brand) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-cta .btn {
+    animation: none;
+  }
+}
+.hero-cta .btn {
   height: 48px;
   padding: 0 5px 0 22px;
   gap: 14px;

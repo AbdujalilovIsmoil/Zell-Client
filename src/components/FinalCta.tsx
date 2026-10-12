@@ -40,6 +40,7 @@ export default function FinalCta() {
   const [phone, setPhone] = useState('')
   const [custom, setCustom] = useState('')
   const [restored, setRestored] = useState(false)
+  const [phoneKey, setPhoneKey] = useState(0)
   const [sending, setSending] = useState(false)
   const [toast, setToast] = useState<{ ok: boolean; text: string; id: number } | null>(null)
   const [time, setTime] = useState('')
@@ -85,12 +86,28 @@ export default function FinalCta() {
     setPrinting(false)
   }
 
+  // After a successful send: empty every field and forget what was remembered.
+  const clearForm = () => {
+    try {
+      localStorage.removeItem(KEY)
+      localStorage.removeItem('zell-phone')
+    } catch {}
+    setName('')
+    setOwner('')
+    setCustom('')
+    setKind(KINDS[0])
+    setPhone('')
+    setPhoneKey((k) => k + 1)
+    reset()
+  }
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!valid || sending) return
     setSending(true)
     const res = await sendLead({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName })
     setSending(false)
+    if (res.ok) clearForm()
     setToast(
       res.ok
         ? { ok: true, text: "Qabul qilindi! Tez orada siz bilan bog'lanamiz.", id: Date.now() }
@@ -169,11 +186,11 @@ export default function FinalCta() {
             autoComplete="name"
             onChange={(e) => setOwner(e.target.value)}
           />
-          <PhoneField onChange={setPhone} />
+          <PhoneField key={phoneKey} onChange={setPhone} />
         </div>
         <div className="fc-actions">
           <button type="submit" className="btn btn-ink" disabled={!valid || sending}>
-            <span className="btn-label">{sending ? 'Yuborilmoqda…' : name.trim() ? `«${shop}» uchun boshlash` : 'Boshlash'}</span>
+            <span className="btn-label">{sending ? 'Yuborilmoqda…' : "Ma'lumot olish"}</span>
             <span className="btn-chip" aria-hidden="true">
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                 <path d="M1 7h11M8 2.5 12.5 7 8 11.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

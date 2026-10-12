@@ -39,11 +39,8 @@ export default function Home() {
               </p>
               <div className="hero-cta">
                 <Btn href="#boshlash" tone="brand">
-                  Boshlash
+                  Ma&apos;lumot olish
                 </Btn>
-                <a href="#imkoniyatlar" className="ulink">
-                  Qanday ishlaydi
-                </a>
               </div>
               <HeroFlow />
             </div>
