@@ -9,6 +9,7 @@ import { AsYouType, getCountries, getCountryCallingCode, parsePhoneNumberFromStr
  */
 
 const TOP: CountryCode[] = ['UZ', 'RU', 'KZ', 'KG', 'TJ', 'TM', 'AZ', 'TR', 'UA', 'US']
+const KEY = 'zell-phone'
 const flag = (c: string) => String.fromCodePoint(...[...c].map((ch) => 0x1f1a5 + ch.charCodeAt(0)))
 
 type Item = { code: CountryCode; name: string; dial: string }
@@ -39,6 +40,40 @@ export default function PhoneField({ onChange }: { onChange: (e164: string) => v
   const report = (c: CountryCode, text: string) => {
     const p = parsePhoneNumberFromString(text, c)
     onChange(p?.isValid() ? p.number : '')
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ country: c, national: text }))
+    } catch {}
+  }
+
+  // Take what the user typed last time.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null')
+      if (saved?.country && getCountries().includes(saved.country) && typeof saved.national === 'string') {
+        setCountry(saved.country)
+        setNational(saved.national)
+        const p = parsePhoneNumberFromString(saved.national, saved.country)
+        onChange(p?.isValid() ? p.number : '')
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Typed, pasted or autofilled. A full "+998 90 …" number switches the country by itself.
+  const input = (raw: string) => {
+    let c = country
+    let text = raw
+    if (raw.trim().startsWith('+')) {
+      const p = parsePhoneNumberFromString(raw)
+      if (p?.country) {
+        c = p.country
+        text = p.nationalNumber
+        setCountry(c)
+      }
+    }
+    text = new AsYouType(c).input(text.replace(/[^\d\s()-]/g, ''))
+    setNational(text)
+    report(c, text)
   }
 
   return (
@@ -52,15 +87,12 @@ export default function PhoneField({ onChange }: { onChange: (e164: string) => v
         type="tel"
         inputMode="tel"
         value={national}
-        maxLength={20}
+        name="tel"
+        maxLength={30}
         placeholder="90 123 45 67"
         aria-label="Telefon raqamingiz"
-        autoComplete="tel-national"
-        onChange={(e) => {
-          const text = new AsYouType(country).input(e.target.value.replace(/[^\d\s()-]/g, ''))
-          setNational(text)
-          report(country, text)
-        }}
+        autoComplete="tel"
+        onChange={(e) => input(e.target.value)}
       />
       {open && (
         <div className="fc-cc-list" role="listbox">

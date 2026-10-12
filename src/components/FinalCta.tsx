@@ -10,6 +10,8 @@ import { sendLead } from '@/lib/telegram'
  * line by line and stamps it; the main button then carries your shop's name.
  */
 
+const KEY = 'zell-lead'
+
 type Kind = { id: string; label: string; items: [string, number][] }
 
 const KINDS: Kind[] = [
@@ -37,11 +39,40 @@ export default function FinalCta() {
   const [owner, setOwner] = useState('')
   const [phone, setPhone] = useState('')
   const [custom, setCustom] = useState('')
-  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [restored, setRestored] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [toast, setToast] = useState<{ ok: boolean; text: string; id: number } | null>(null)
   const [time, setTime] = useState('')
   const input = useRef<HTMLInputElement>(null)
 
   useEffect(() => setTime(today()), [])
+
+  // Remember what was typed last time (phone remembers itself).
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null')
+      if (!saved) return
+      if (typeof saved.name === 'string') setName(saved.name)
+      if (typeof saved.owner === 'string') setOwner(saved.owner)
+      if (typeof saved.custom === 'string') setCustom(saved.custom)
+      const k = KINDS.find((x) => x.id === saved.kind)
+      if (k) setKind(k)
+    } catch {} finally {
+      setRestored(true)
+    }
+  }, [])
+  useEffect(() => {
+    if (!restored) return
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ name, owner, custom, kind: kind.id }))
+    } catch {}
+  }, [restored, name, owner, custom, kind])
+
+  useEffect(() => {
+    if (!toast) return
+    const t = window.setTimeout(() => setToast(null), 5000)
+    return () => window.clearTimeout(t)
+  }, [toast])
 
   const shop = name.trim() || "Do'koningiz"
   const other = kind.id === 'other'
@@ -54,11 +85,17 @@ export default function FinalCta() {
     setPrinting(false)
   }
 
-  const submit = async () => {
-    if (!valid || status === 'sending') return
-    setStatus('sending')
-    const ok = await sendLead({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName })
-    setStatus(ok ? 'sent' : 'error')
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!valid || sending) return
+    setSending(true)
+    const res = await sendLead({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName })
+    setSending(false)
+    setToast(
+      res.ok
+        ? { ok: true, text: "Qabul qilindi! Tez orada siz bilan bog'lanamiz.", id: Date.now() }
+        : { ok: false, text: `Yuborib bo'lmadi: ${res.reason}`, id: Date.now() },
+    )
   }
 
   const print = () => {
@@ -74,19 +111,20 @@ export default function FinalCta() {
 
   return (
     <div className="fc">
-      <div className="fc-left">
+      <form className="fc-left" onSubmit={submit} noValidate>
         <span className="fc-eyebrow">Bir daqiqada boshlang</span>
         <label className="fc-ask" htmlFor="shop-name">
           Do&apos;koningiz nomi <em>nima?</em>
         </label>
         <input
           id="shop-name"
+          name="organization"
           ref={input}
           className="fc-name"
           value={name}
           maxLength={24}
           placeholder="Masalan, Baraka Market"
-          autoComplete="off"
+          autoComplete="organization"
           onChange={(e) => {
             setName(e.target.value)
             reset()
@@ -95,6 +133,7 @@ export default function FinalCta() {
         <div className="fc-kinds" role="radiogroup" aria-label="Nima sotasiz">
           {KINDS.map((k) => (
             <button
+              type="button"
               key={k.id}
               role="radio"
               aria-checked={kind.id === k.id}
@@ -126,32 +165,35 @@ export default function FinalCta() {
             maxLength={40}
             placeholder="Ismingiz"
             aria-label="Ismingiz"
+            name="name"
             autoComplete="name"
             onChange={(e) => setOwner(e.target.value)}
           />
           <PhoneField onChange={setPhone} />
         </div>
         <div className="fc-actions">
-          {status === 'sent' ? (
-            <span className="fc-ok">✓ Qabul qilindi — tez orada bog&apos;lanamiz</span>
-          ) : (
-            <button className="btn btn-ink" onClick={submit} disabled={!valid || status === 'sending'}>
-              <span className="btn-label">{status === 'sending' ? 'Yuborilmoqda…' : name.trim() ? `«${shop}» uchun boshlash` : 'Boshlash'}</span>
-              <span className="btn-chip" aria-hidden="true">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M1 7h11M8 2.5 12.5 7 8 11.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-            </button>
-          )}
-          {status === 'error' ? <span>Yuborib bo&apos;lmadi, qayta urinib ko&apos;ring</span> : status !== 'sent' && <span>Bepul. Karta so&apos;ralmaydi</span>}
+          <button type="submit" className="btn btn-ink" disabled={!valid || sending}>
+            <span className="btn-label">{sending ? 'Yuborilmoqda…' : name.trim() ? `«${shop}» uchun boshlash` : 'Boshlash'}</span>
+            <span className="btn-chip" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M1 7h11M8 2.5 12.5 7 8 11.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          </button>
+          <span>Bepul. Karta so&apos;ralmaydi</span>
         </div>
-      </div>
+      </form>
+      {toast && (
+        <div key={toast.id} className={`fc-toast ${toast.ok ? 'ok' : 'err'}`} role={toast.ok ? 'status' : 'alert'} onClick={() => setToast(null)}>
+          <span aria-hidden="true">{toast.ok ? '✓' : '!'}</span>
+          {toast.text}
+        </div>
+      )}
 
       <div className="fc-right">
         <div className="fc-printer">
           <span className="fc-slot" />
-          <button className="fc-print" onClick={print} disabled={printing}>
+          <button type="button" className="fc-print" onClick={print} disabled={printing}>
             {printing ? 'Chiqarilmoqda…' : printed ? 'Yana bittasini chiqarish' : 'Birinchi chekni chiqarish'}
           </button>
         </div>

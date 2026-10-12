@@ -5,10 +5,12 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 export type Lead = { shop: string; owner: string; phone: string; category: string }
 
 /** Sends a lead straight to the Telegram bot (sendMessage) from the browser. */
-export async function sendLead(l: Lead): Promise<boolean> {
+export type SendResult = { ok: true } | { ok: false; reason: string }
+
+export async function sendLead(l: Lead): Promise<SendResult> {
   const token = process.env.NEXT_PUBLIC_TELEGRAM_BOT_TOKEN
   const chat = process.env.NEXT_PUBLIC_TELEGRAM_CHAT_ID
-  if (!token || !chat) return false
+  if (!token || !chat) return { ok: false, reason: 'Telegram sozlanmagan (token yoki chat ID yo‘q)' }
 
   const country = parsePhoneNumberFromString(l.phone)?.country
   const when = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short', timeZone: 'Asia/Tashkent' }).format(new Date())
@@ -23,10 +25,16 @@ export async function sendLead(l: Lead): Promise<boolean> {
     `🕐 ${when} (Toshkent)`,
   ].join('\n')
 
-  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chat, text, parse_mode: 'HTML', disable_web_page_preview: true }),
-  }).catch(() => null)
-  return !!res?.ok
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chat, text, parse_mode: 'HTML', disable_web_page_preview: true }),
+    })
+    if (res.ok) return { ok: true }
+    const data = await res.json().catch(() => null)
+    return { ok: false, reason: data?.description ?? `Telegram xatosi (${res.status})` }
+  } catch {
+    return { ok: false, reason: 'Internetga ulanib bo‘lmadi' }
+  }
 }
