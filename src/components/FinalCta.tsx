@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import PhoneField from '@/components/PhoneField'
+import { sendLead } from '@/lib/telegram'
 
 /**
  * Closing CTA: type your shop's name, pick what you sell, and a paper receipt
@@ -56,16 +57,8 @@ export default function FinalCta() {
   const submit = async () => {
     if (!valid || status === 'sending') return
     setStatus('sending')
-    try {
-      const res = await fetch('/api/lead', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName }),
-      })
-      setStatus(res.ok ? 'sent' : 'error')
-    } catch {
-      setStatus('error')
-    }
+    const ok = await sendLead({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName })
+    setStatus(ok ? 'sent' : 'error')
   }
 
   const print = () => {
