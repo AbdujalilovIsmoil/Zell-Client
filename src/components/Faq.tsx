@@ -14,7 +14,7 @@ const FAQ: QA[] = [
   {
     id: 'trial',
     q: "Avval sinab ko'rsam bo'ladimi?",
-    a: "Ha. Har qanday tarifni 14 kun bepul ishlatasiz, karta ma'lumoti so'ralmaydi. Sinov tugagach tarifni tanlaysiz yoki shunchaki to'xtatasiz.",
+    a: "Ha, bu bepul. Do'kon nomi va telefon raqamingizni qoldiring — biz siz bilan bog'lanib, tizimni ulab beramiz. Karta ma'lumoti so'ralmaydi.",
     keys: ['sinab', 'sinov', 'bepul', 'trial', 'test', "ko'rsam"],
   },
   {
@@ -52,12 +52,6 @@ const FAQ: QA[] = [
     q: "Ma'lumotlarim xavfsizmi?",
     a: "Kirish ikki bosqichli himoya bilan yopiladi, faol sessiyalarni ko'rib turasiz va notanish qurilmadan kirilsa ogohlantirish olasiz.",
     keys: ['xavfsiz', 'himoya', 'parol', 'sessiya', "o'g'ri", 'xaker'],
-  },
-  {
-    id: 'plan',
-    q: "Tarifni keyin o'zgartirsam bo'ladimi?",
-    a: "Istalgan vaqtda. Yuqoriroq yoki pastroq tarifga o'tsangiz, to'lov avtomatik qayta hisoblanadi.",
-    keys: ['tarif', 'narx', "o'zgartir", 'pul', "to'lov", 'qancha', 'arzon'],
   },
 ]
 

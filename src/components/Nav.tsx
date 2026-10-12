@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 
 const links = [
   { href: '#imkoniyatlar', label: 'Imkoniyatlar' },
-  { href: '#tariflar', label: 'Tariflar' },
   { href: '#savollar', label: 'Savollar' },
 ]
 

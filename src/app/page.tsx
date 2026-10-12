@@ -2,7 +2,6 @@ import Nav from '@/components/Nav'
 import Reveal from '@/components/Reveal'
 import CheckoutScene from '@/components/CheckoutScene'
 import Playground from '@/components/Playground'
-import Pricing from '@/components/Pricing'
 import Faq from '@/components/Faq'
 import FinalCta from '@/components/FinalCta'
 import Tour from '@/components/Tour'
@@ -39,8 +38,8 @@ export default function Home() {
                 Kassada sotuv bo&apos;lgan soniyada ombor, mijoz kartasi va foyda hisoboti o&apos;zi yangilanadi. Siz faqat savdo qilasiz.
               </p>
               <div className="hero-cta">
-                <Btn href="#tariflar" tone="brand">
-                  14 kun bepul sinash
+                <Btn href="#boshlash" tone="brand">
+                  Boshlash
                 </Btn>
                 <a href="#imkoniyatlar" className="ulink">
                   Qanday ishlaydi
@@ -95,22 +94,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ---------- Pricing ---------- */}
-        <section className="section" id="tariflar">
-          <div className="wrap">
-            <Reveal className="head">
-              <span className="eyebrow">Tariflar</span>
-              <h2>
-                Faqat <em>kerakli</em> narsa uchun to&apos;laysiz.
-              </h2>
-              <p>Tayyor tarifni tanlang yoki chekni o&apos;zingiz yig&apos;ing — narx shu zahoti hisoblanadi.</p>
-            </Reveal>
-            <Reveal>
-              <Pricing />
-            </Reveal>
-          </div>
-        </section>
-
         {/* ---------- FAQ ---------- */}
         <section className="section" id="savollar">
           <div className="wrap">
@@ -141,7 +124,6 @@ export default function Home() {
           <img src="/logo.svg" alt="Zell" />
           <nav>
             <a href="#imkoniyatlar">Imkoniyatlar</a>
-            <a href="#tariflar">Tariflar</a>
             <a href="#savollar">Savollar</a>
           </nav>
           <span>© {new Date().getFullYear()} Zell</span>

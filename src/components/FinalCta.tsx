@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Btn from '@/components/Arrow'
 
 /**
  * Closing CTA: type your shop's name, pick what you sell, and a paper receipt
@@ -17,6 +16,7 @@ const KINDS: Kind[] = [
   { id: 'tech', label: 'Elektronika', items: [['Quloqchin, simsiz', 290_000], ['Zaryadlovchi 20W', 85_000]] },
   { id: 'pharmacy', label: 'Dorixona', items: [['Paratsetamol', 12_000], ['Vitamin C', 45_000], ['Niqob, 10 dona', 15_000]] },
   { id: 'cafe', label: 'Kafe', items: [['Osh, 1 porsiya', 38_000], ['Choy, choynak', 8_000], ['Non', 4_000]] },
+  { id: 'other', label: 'Boshqa', items: [['Xizmat / mahsulot', 100_000], ['Qo\'shimcha xizmat', 50_000]] },
 ]
 
 const fmt = (n: number) => n.toLocaleString('ru-RU').replace(/ |,/g, ' ')
@@ -32,17 +32,40 @@ export default function FinalCta() {
   const [printing, setPrinting] = useState(false)
   const [printed, setPrinted] = useState(false)
   const [stamp, setStamp] = useState(0)
+  const [owner, setOwner] = useState('')
+  const [phone, setPhone] = useState('')
+  const [custom, setCustom] = useState('')
+  const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [time, setTime] = useState('')
   const input = useRef<HTMLInputElement>(null)
 
   useEffect(() => setTime(today()), [])
 
   const shop = name.trim() || "Do'koningiz"
+  const other = kind.id === 'other'
+  const categoryName = other ? custom.trim() : kind.label
+  const phoneDigits = phone.replace(/\D/g, '')
+  const valid = name.trim() && owner.trim() && phoneDigits.length >= 7 && phoneDigits.length <= 15 && categoryName
   const total = kind.items.reduce((s, [, p]) => s + p, 0)
 
   const reset = () => {
     setPrinted(false)
     setPrinting(false)
+  }
+
+  const submit = async () => {
+    if (!valid || status === 'sending') return
+    setStatus('sending')
+    try {
+      const res = await fetch('/api/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop: name.trim(), owner: owner.trim(), phone: phone.trim(), category: categoryName }),
+      })
+      setStatus(res.ok ? 'sent' : 'error')
+    } catch {
+      setStatus('error')
+    }
   }
 
   const print = () => {
@@ -92,11 +115,53 @@ export default function FinalCta() {
             </button>
           ))}
         </div>
+        {other && (
+          <input
+            className="fc-field"
+            value={custom}
+            maxLength={40}
+            placeholder="Xizmat yoki mahsulot nomi"
+            aria-label="Xizmat nomi"
+            autoComplete="off"
+            onChange={(e) => setCustom(e.target.value)}
+          />
+        )}
+        <div className="fc-fields">
+          <input
+            className="fc-field"
+            value={owner}
+            maxLength={40}
+            placeholder="Ismingiz"
+            aria-label="Ismingiz"
+            autoComplete="name"
+            onChange={(e) => setOwner(e.target.value)}
+          />
+          <input
+            className="fc-field"
+            type="tel"
+            inputMode="tel"
+            value={phone}
+            maxLength={20}
+            placeholder="Telefon: +998 90 123 45 67"
+            aria-label="Telefon raqamingiz"
+            autoComplete="tel"
+            onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s()-]/g, ''))}
+          />
+        </div>
         <div className="fc-actions">
-          <Btn href="#tariflar" tone="ink">
-            {name.trim() ? `«${shop}» ni 14 kun bepul ochish` : '14 kun bepul boshlash'}
-          </Btn>
-          <span>Karta so&apos;ralmaydi</span>
+          {status === 'sent' ? (
+            <span className="fc-ok">✓ Qabul qilindi — tez orada bog&apos;lanamiz</span>
+          ) : (
+            <button className="btn btn-ink" onClick={submit} disabled={!valid || status === 'sending'}>
+              <span className="btn-label">{status === 'sending' ? 'Yuborilmoqda…' : name.trim() ? `«${shop}» uchun boshlash` : 'Boshlash'}</span>
+              <span className="btn-chip" aria-hidden="true">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M1 7h11M8 2.5 12.5 7 8 11.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+            </button>
+          )}
+          {status === 'error' ? <span>Yuborib bo&apos;lmadi, qayta urinib ko&apos;ring</span> : status !== 'sent' && <span>Bepul. Karta so&apos;ralmaydi</span>}
         </div>
       </div>
 
