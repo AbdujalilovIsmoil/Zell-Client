@@ -858,10 +858,6 @@ button {
   }
 }
 .hero-cta .btn {
-    animation: none;
-  }
-}
-.hero-cta .btn {
   height: 48px;
   padding: 0 5px 0 22px;
   gap: 14px;
