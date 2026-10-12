@@ -19,7 +19,7 @@ export async function sendLead(l: Lead): Promise<SendResult> {
     '━━━━━━━━━━━━━━',
     `🏪 <b>Do‘kon:</b> ${esc(l.shop)}`,
     `👤 <b>Ism:</b> ${esc(l.owner)}`,
-    `📞 <b>Telefon:</b> <code>${esc(l.phone)}</code>${country ? ` (${country})` : ''}`,
+    `📞 <b>Telefon:</b> ${esc(l.phone)}${country ? ` (${country})` : ''}`,
     `🗂 <b>Kategoriya:</b> ${esc(l.category)}`,
     '━━━━━━━━━━━━━━',
     `🕐 ${when} (Toshkent)`,
