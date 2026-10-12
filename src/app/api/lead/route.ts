@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 const clip = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
@@ -11,11 +12,10 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
   const shop = clip(body?.shop, 60)
   const owner = clip(body?.owner, 60)
-  const phone = clip(body?.phone, 24)
+  const parsed = parsePhoneNumberFromString(clip(body?.phone, 24))
   const category = clip(body?.category, 60)
-  const digits = phone.replace(/\D/g, '')
 
-  if (!shop || !owner || !category || digits.length < 7 || digits.length > 15 || !/^\+?[\d\s()\-.]+$/.test(phone)) {
+  if (!shop || !owner || !category || !parsed?.isValid()) {
     return NextResponse.json({ ok: false, error: 'invalid' }, { status: 400 })
   }
 
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     '━━━━━━━━━━━━━━',
     `🏪 <b>Do‘kon:</b> ${esc(shop)}`,
     `👤 <b>Ism:</b> ${esc(owner)}`,
-    `📞 <b>Telefon:</b> <code>${esc(phone.startsWith('+') ? '+' + digits : digits)}</code>`,
+    `📞 <b>Telefon:</b> <code>${esc(parsed!.number)}</code>${parsed!.country ? ` (${parsed!.country})` : ''}`,
     `🗂 <b>Kategoriya:</b> ${esc(category)}`,
     '━━━━━━━━━━━━━━',
     `🕐 ${when} (Toshkent)`,

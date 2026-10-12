@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import PhoneField from '@/components/PhoneField'
 
 /**
  * Closing CTA: type your shop's name, pick what you sell, and a paper receipt
@@ -44,8 +45,7 @@ export default function FinalCta() {
   const shop = name.trim() || "Do'koningiz"
   const other = kind.id === 'other'
   const categoryName = other ? custom.trim() : kind.label
-  const phoneDigits = phone.replace(/\D/g, '')
-  const valid = name.trim() && owner.trim() && phoneDigits.length >= 7 && phoneDigits.length <= 15 && categoryName
+  const valid = name.trim() && owner.trim() && phone && categoryName
   const total = kind.items.reduce((s, [, p]) => s + p, 0)
 
   const reset = () => {
@@ -60,7 +60,7 @@ export default function FinalCta() {
       const res = await fetch('/api/lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop: name.trim(), owner: owner.trim(), phone: phone.trim(), category: categoryName }),
+        body: JSON.stringify({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName }),
       })
       setStatus(res.ok ? 'sent' : 'error')
     } catch {
@@ -136,17 +136,7 @@ export default function FinalCta() {
             autoComplete="name"
             onChange={(e) => setOwner(e.target.value)}
           />
-          <input
-            className="fc-field"
-            type="tel"
-            inputMode="tel"
-            value={phone}
-            maxLength={20}
-            placeholder="Telefon: +998 90 123 45 67"
-            aria-label="Telefon raqamingiz"
-            autoComplete="tel"
-            onChange={(e) => setPhone(e.target.value.replace(/[^\d+\s()-]/g, ''))}
-          />
+          <PhoneField onChange={setPhone} />
         </div>
         <div className="fc-actions">
           {status === 'sent' ? (

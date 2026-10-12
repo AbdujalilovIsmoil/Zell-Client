@@ -1595,6 +1595,80 @@ button {
   gap: 10px;
   margin-top: 10px;
 }
+.fc-phone {
+  position: relative;
+  display: flex;
+  gap: 6px;
+}
+.fc-cc {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: rgba(3, 33, 15, 0.1);
+  color: var(--on-brand);
+  font: 500 15px var(--sans);
+  white-space: nowrap;
+}
+.fc-cc i {
+  font-style: normal;
+  font-size: 11px;
+  opacity: 0.6;
+}
+.fc-cc-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(320px, 90vw);
+  padding: 8px;
+  border-radius: 16px;
+  background: var(--on-brand);
+  color: #eafff2;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+.fc-cc-q {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  font: 500 14.5px var(--sans);
+  outline: none;
+}
+.fc-cc-list ul {
+  max-height: 240px;
+  margin-top: 6px;
+  overflow-y: auto;
+  list-style: none;
+}
+.fc-cc-list li button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 8px;
+  color: inherit;
+  font: 500 14.5px var(--sans);
+  text-align: left;
+}
+.fc-cc-list li button:hover,
+.fc-cc-list li button[aria-selected='true'] {
+  background: rgba(255, 255, 255, 0.14);
+}
+.fc-cc-list li b {
+  margin-left: auto;
+  font-weight: 500;
+  opacity: 0.65;
+}
+.fc-cc-empty {
+  padding: 10px;
+  opacity: 0.6;
+}
 .fc-kinds + .fc-field {
   margin-top: 10px;
 }
