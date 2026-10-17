@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import PhoneField from '@/components/PhoneField'
-import { sendLead } from '@/lib/telegram'
+import { rememberUtm, sendLead } from '@/lib/lead'
 
 /**
  * Closing CTA: type your shop's name, pick what you sell, and a paper receipt
@@ -42,11 +42,13 @@ export default function FinalCta() {
   const [restored, setRestored] = useState(false)
   const [phoneKey, setPhoneKey] = useState(0)
   const [sending, setSending] = useState(false)
+  const [website, setWebsite] = useState('')
   const [toast, setToast] = useState<{ ok: boolean; text: string; id: number } | null>(null)
   const [time, setTime] = useState('')
   const input = useRef<HTMLInputElement>(null)
 
   useEffect(() => setTime(today()), [])
+  useEffect(rememberUtm, [])
 
   // Remember what was typed last time (phone remembers itself).
   useEffect(() => {
@@ -105,13 +107,13 @@ export default function FinalCta() {
     e.preventDefault()
     if (!valid || sending) return
     setSending(true)
-    const res = await sendLead({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName })
+    const res = await sendLead({ shop: name.trim(), owner: owner.trim(), phone, category: categoryName, website })
     setSending(false)
     if (res.ok) clearForm()
     setToast(
       res.ok
-        ? { ok: true, text: "Qabul qilindi! Tez orada siz bilan bog'lanamiz.", id: Date.now() }
-        : { ok: false, text: `Yuborib bo'lmadi: ${res.reason}`, id: Date.now() },
+        ? { ok: true, text: "Rahmat! Tez orada siz bilan bog'lanamiz.", id: Date.now() }
+        : { ok: false, text: res.reason, id: Date.now() },
     )
   }
 
@@ -188,6 +190,17 @@ export default function FinalCta() {
           />
           <PhoneField key={phoneKey} onChange={setPhone} />
         </div>
+        {/* Honeypot: off-screen (not display:none) so bots still fill it; people never see it. */}
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+          style={{ position: 'absolute', left: -9999 }}
+        />
         <div className="fc-actions">
           <button type="submit" className="btn btn-ink" disabled={!valid || sending}>
             <span className="btn-label">{sending ? 'Yuborilmoqda…' : "Ma'lumot olish"}</span>
