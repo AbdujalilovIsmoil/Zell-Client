@@ -29,7 +29,6 @@ export async function sendLead(l: Lead): Promise<SendResult> {
     contact_name: l.owner,
     phone: l.phone,
     ...savedUtm(),
-    page_url: location.href.slice(0, 500),
     // Honeypot: always sent, a person leaves it empty.
     website: l.website,
   }

@@ -5,7 +5,7 @@
  */
 
 const API = process.env.LANDING_API_URL ?? 'https://pos.api.cognilabs.org'
-const FIELDS = ['contact_name', 'phone', 'company_name', 'message', 'utm_source', 'utm_medium', 'utm_campaign', 'page_url', 'website']
+const FIELDS = ['contact_name', 'phone', 'company_name', 'message', 'utm_source', 'utm_medium', 'utm_campaign', 'website']
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null)
